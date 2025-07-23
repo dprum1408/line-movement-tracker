@@ -1,13 +1,16 @@
 import requests
 import pandas as pd
-import sqlite3
 from datetime import datetime
-import os
+import psycopg2
+from sqlalchemy import create_engine
 
 API_KEY = 'your_api_key_here'
 SPORT = 'soccer_epl'
 REGION = 'us'
 MARKET = 'h2h'
+
+# Replace with your Supabase URI
+DB_URI = "postgresql://postgres:<your-password>@<your-host>.supabase.co:5432/postgres"
 
 def fetch_odds():
     url = f"https://api.the-odds-api.com/v4/sports/{SPORT}/odds"
@@ -36,9 +39,8 @@ def fetch_odds():
 
     df = pd.DataFrame(rows)
 
-    conn = sqlite3.connect("odds_data.db")
-    df.to_sql("odds", conn, if_exists="append", index=False)
-    conn.close()
+    engine = create_engine(DB_URI)
+    df.to_sql("odds", engine, if_exists="append", index=False)
 
 if __name__ == "__main__":
     fetch_odds()
