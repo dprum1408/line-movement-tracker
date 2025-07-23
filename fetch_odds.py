@@ -4,13 +4,11 @@ from datetime import datetime
 import psycopg2
 from sqlalchemy import create_engine
 
-API_KEY = 'your_api_key_here'
+API_KEY = '2c2efd119d34af0b708047a6466fc0c1'
 SPORT = 'soccer_epl'
 REGION = 'us'
 MARKET = 'h2h'
-
-# Replace with your Supabase URI
-DB_URI = "postgresql://postgres:<your-password>@<your-host>.supabase.co:5432/postgres"
+postgresql://postgres:[Ladlad081404!]@db.cbocblphttmjtaeenbbr.supabase.co:5432/postgres"
 
 def fetch_odds():
     url = f"https://api.the-odds-api.com/v4/sports/{SPORT}/odds"
