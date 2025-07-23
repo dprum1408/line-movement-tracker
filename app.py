@@ -9,7 +9,7 @@ st.title("📉 Line Movement Tracker")
 
 from sqlalchemy import create_engine
 
-DB_URI = "postgresql://postgres:<your-password>@<your-host>.supabase.co:5432/postgres"
+DB_URI = "postgresql://postgres:[Ladlad081404!]@db.cbocblphttmjtaeenbbr.supabase.co:5432/postgres"
 engine = create_engine(DB_URI)
 df = pd.read_sql("SELECT * FROM odds", engine)
 df = pd.read_sql("SELECT * FROM odds", conn)
