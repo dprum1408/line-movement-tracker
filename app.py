@@ -7,8 +7,11 @@ from datetime import datetime
 st.set_page_config(page_title="Line Movement Tracker", layout="wide")
 st.title("📉 Line Movement Tracker")
 
-# Load from SQLite
-conn = sqlite3.connect("odds_data.db")
+from sqlalchemy import create_engine
+
+DB_URI = "postgresql://postgres:<your-password>@<your-host>.supabase.co:5432/postgres"
+engine = create_engine(DB_URI)
+df = pd.read_sql("SELECT * FROM odds", engine)
 df = pd.read_sql("SELECT * FROM odds", conn)
 
 # Refresh button (optional)
