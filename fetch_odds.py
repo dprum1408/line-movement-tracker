@@ -39,6 +39,11 @@ def fetch_odds():
 
     engine = create_engine(DB_URI)
     df['timestamp'] = pd.to_datetime(df['timestamp']).dt.strftime('%Y-%m-%dT%H:%M:%SZ')
+    df['odds'] = pd.to_numeric(df['odds'], errors='coerce')
+    df = df.dropna(subset=['odds'])  # Drop rows where odds couldn't be converted
+
+    # Optional: Round odds for consistency
+    df['odds'] = df['odds'].round(4)
     df.to_sql("odds", engine, if_exists="append", index=False)
 
 if __name__ == "__main__":
