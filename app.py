@@ -3,16 +3,15 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import sqlite3
 from datetime import datetime
+from sqlalchemy import create_engine
 
 st.set_page_config(page_title="Line Movement Tracker", layout="wide")
 st.title("📉 Line Movement Tracker")
 
-from sqlalchemy import create_engine
 
 DB_URI = "postgresql://postgres:[Ladlad081404!]@db.cbocblphttmjtaeenbbr.supabase.co:5432/postgres"
 engine = create_engine(DB_URI)
 df = pd.read_sql("SELECT * FROM odds", engine)
-df = pd.read_sql("SELECT * FROM odds", conn)
 
 # Refresh button (optional)
 if st.button("🔄 Refresh Data"):
