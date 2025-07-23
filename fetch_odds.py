@@ -38,6 +38,7 @@ def fetch_odds():
     df = pd.DataFrame(rows)
 
     engine = create_engine(DB_URI)
+    df['timestamp'] = pd.to_datetime(df['timestamp']).dt.strftime('%Y-%m-%dT%H:%M:%SZ')
     df.to_sql("odds", engine, if_exists="append", index=False)
 
 if __name__ == "__main__":
