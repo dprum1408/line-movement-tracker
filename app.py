@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import requests
 from datetime import datetime
 import os
+from fetch_odds import initialize_csv
 
 st.set_page_config(layout="wide")
 st.title("📉 Line Movement Tracker")
@@ -58,9 +59,16 @@ def clean_csv():
     df.to_csv(CSV_FILE, index=False)
 
 def load_data():
-    if not os.path.exists(CSV_FILE):
+    # Create a fresh file if missing or empty
+    if not os.path.exists(CSV_FILE) or os.path.getsize(CSV_FILE) == 0:
+        initialize_csv()
         return pd.DataFrame()
+
     df = pd.read_csv(CSV_FILE)
+    if df.empty:
+        return pd.DataFrame()
+
+    # Clean data
     df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
     df["odds"] = pd.to_numeric(df["odds"], errors="coerce")
     df = df.dropna(subset=["timestamp", "odds"])
