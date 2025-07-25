@@ -62,4 +62,13 @@ for team in teams:
         continue
 
     fig, ax = plt.subplots()
-    for book in t
+    for book in team_df["bookmaker"].unique():
+        sub = team_df[team_df["bookmaker"] == book].sort_values("timestamp")
+        ax.plot(sub["timestamp"], sub["odds"], label=book)
+
+    ax.set_title(f"{team} Odds Over Time")
+    ax.set_xlabel("Time")
+    ax.set_ylabel("Decimal Odds")
+    ax.legend()
+    ax.grid(True, alpha=0.2)
+    st.pyplot(fig)
