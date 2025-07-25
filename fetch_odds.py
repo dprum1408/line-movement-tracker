@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import datetime
 import os
 
-API_KEY = "your_api_key_here"
+API_KEY = "2c2efd119d34af0b708047a6466fc0c1"
 REGION = "us"
 MARKET = "h2h"
 CSV_FILE = "odds_history.csv"
