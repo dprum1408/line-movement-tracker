@@ -5,35 +5,61 @@ import matplotlib.pyplot as plt
 st.set_page_config(layout="wide")
 st.title("📉 Line Movement Tracker")
 
+@st.cache_data
+def load_data(path="odds_history.csv"):
+    df = pd.read_csv(path)
+    # Make sure required cols exist
+    required = {"timestamp", "match", "bookmaker", "market", "team", "odds"}
+    missing = required - set(df.columns)
+    if missing:
+        raise ValueError(f"Missing columns in CSV: {missing}")
+
+    # Fix types
+    df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
+    df["odds"] = pd.to_numeric(df["odds"], errors="coerce")
+
+    # Drop rows where key fields are invalid
+    df = df.dropna(subset=["timestamp", "match", "team", "bookmaker", "odds"])
+    return df
+
 # Refresh button
 if st.button("🔄 Refresh CSV"):
-    st.cache_data.clear()
+    load_data.clear()
 
 try:
-    df = pd.read_csv("odds_history.csv")
-except FileNotFoundError:
-    st.warning("No data yet. Run fetch_odds.py first.")
+    df = load_data()
+except Exception as e:
+    st.error(f"Could not load data: {e}")
     st.stop()
 
-# Match filter
-match = st.selectbox("Select Match", df['match'].dropna().unique())
-filtered = df[df['match'] == match]
+if df.empty:
+    st.warning("No valid rows found in odds_history.csv yet. Let the scheduler run a bit.")
+    st.stop()
 
-# Stats summary
-st.subheader("Summary Stats")
-summary = filtered.groupby('team')['odds'].agg(['min', 'max', 'mean']).round(3)
-st.dataframe(summary)
+# --- Sidebar filters ---
+matches = df["match"].unique()
+selected_match = st.sidebar.selectbox("Select Match", matches)
 
-# Plot
-teams = filtered['team'].unique()
+filtered = df[df["match"] == selected_match].copy()
+if filtered.empty:
+    st.warning("No rows for that match.")
+    st.stop()
+
+# --- Summary stats ---
+st.subheader(f"📊 Summary Stats for {selected_match}")
+summary = (
+    filtered.groupby("team", as_index=False)["odds"]
+    .agg(min_odds="min", max_odds="max", mean_odds="mean")
+    .round(3)
+)
+st.dataframe(summary, use_container_width=True)
+
+# --- Plots ---
+teams = filtered["team"].unique()
 for team in teams:
-    sub = filtered[filtered['team'] == team]
+    team_df = filtered[filtered["team"] == team]
+    if team_df.empty:
+        continue
+
     fig, ax = plt.subplots()
-    for book in sub['bookmaker'].unique():
-        odds = sub[sub['bookmaker'] == book]
-        ax.plot(pd.to_datetime(odds['timestamp']), odds['odds'], label=book)
-    ax.set_title(f"{team} Odds")
-    ax.set_ylabel("Decimal Odds")
-    ax.set_xlabel("Time")
-    ax.legend()
-    st.pyplot(fig)
+    for book in t
