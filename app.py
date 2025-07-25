@@ -88,7 +88,12 @@ if os.path.exists(CSV_FILE):
         fig, ax = plt.subplots()
         for book in team_df["bookmaker"].unique():
             sub = team_df[team_df["bookmaker"] == book]
-            ax.plot(pd.to_datetime(sub["timestamp"]), sub["odds"], label=book)
+            # Safely parse timestamps
+            sub["timestamp"] = pd.to_datetime(sub["timestamp"], errors="coerce")
+            sub = sub.dropna(subset=["timestamp"])
+
+            ax.plot(sub["timestamp"], sub["odds"], label=book)
+
         ax.set_title(f"{team} Odds Over Time")
         ax.set_xlabel("Time")
         ax.set_ylabel("Decimal Odds")
