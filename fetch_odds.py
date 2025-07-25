@@ -45,6 +45,7 @@ def fetch_odds(sport=SPORT):
                     rows.append(
                         {
                             "timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                            "sport": sport,
                             "match": f"{game['home_team']} vs {game['away_team']}",
                             "bookmaker": bookmaker["title"],
                             "market": market["key"],
