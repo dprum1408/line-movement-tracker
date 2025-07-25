@@ -1,41 +1,38 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-import sqlite3
-from datetime import datetime
-from sqlalchemy import create_engine
 
-st.set_page_config(page_title="Line Movement Tracker", layout="wide")
+st.set_page_config(layout="wide")
 st.title("📉 Line Movement Tracker")
 
-
-DB_URI = "postgresql://postgres:[Ladlad081404!]@db.cbocblphttmjtaeenbbr.supabase.co:5432/postgres"
-engine = create_engine(DB_URI)
-df = pd.read_sql("SELECT * FROM odds", engine)
-
-# Refresh button (optional)
-if st.button("🔄 Refresh Data"):
+# Refresh button
+if st.button("🔄 Refresh CSV"):
     st.cache_data.clear()
 
+try:
+    df = pd.read_csv("odds_history.csv")
+except FileNotFoundError:
+    st.warning("No data yet. Run fetch_odds.py first.")
+    st.stop()
+
 # Match filter
-match_options = df['match'].dropna().unique()
-selected_match = st.sidebar.selectbox("Select Match", match_options)
+match = st.selectbox("Select Match", df['match'].dropna().unique())
+filtered = df[df['match'] == match]
 
-filtered = df[df['match'] == selected_match]
+# Stats summary
+st.subheader("Summary Stats")
+summary = filtered.groupby('team')['odds'].agg(['min', 'max', 'mean']).round(3)
+st.dataframe(summary)
 
-# Embedded Stats
-st.subheader(f"📊 Summary Stats for {selected_match}")
-grouped = filtered.groupby(['team'])['odds'].agg(['min', 'max', 'mean']).reset_index()
-st.dataframe(grouped)
-
-# Line Movement Charts
-for team in filtered['team'].unique():
-    team_df = filtered[filtered['team'] == team]
+# Plot
+teams = filtered['team'].unique()
+for team in teams:
+    sub = filtered[filtered['team'] == team]
     fig, ax = plt.subplots()
-    for book in team_df['bookmaker'].unique():
-        sub = team_df[team_df['bookmaker'] == book]
-        ax.plot(pd.to_datetime(sub['timestamp']), sub['odds'], label=book)
-    ax.set_title(f"{team} Odds Over Time")
+    for book in sub['bookmaker'].unique():
+        odds = sub[sub['bookmaker'] == book]
+        ax.plot(pd.to_datetime(odds['timestamp']), odds['odds'], label=book)
+    ax.set_title(f"{team} Odds")
     ax.set_ylabel("Decimal Odds")
     ax.set_xlabel("Time")
     ax.legend()
