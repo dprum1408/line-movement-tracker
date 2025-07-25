@@ -91,9 +91,9 @@ if df.empty:
     st.info("No valid odds data yet. Fetch some odds first.")
     st.stop()
 
-matches = df["match"].unique()
+matches = df[df["sport"] == sport]["match"].unique()
 selected_match = st.sidebar.selectbox("Select Match", matches)
-filtered = df[df["match"] == selected_match]
+filtered = df[(df["sport"] == sport) & (df["match"] == selected_match)]
 
 st.subheader(f"📊 Summary Stats for {selected_match}")
 summary = filtered.groupby("team")["odds"].agg(["min", "max", "mean"]).round(3)
