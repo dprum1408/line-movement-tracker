@@ -8,7 +8,7 @@ import os
 st.set_page_config(layout="wide")
 st.title("📉 Line Movement Tracker")
 
-API_KEY = "your_api_key_here"  # Add your Odds API key here
+API_KEY = "2c2efd119d34af0b708047a6466fc0c1"  # Add your Odds API key here
 REGION = "us"
 MARKET = "h2h"
 CSV_FILE = "odds_history.csv"
