@@ -1,74 +1,98 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import requests
+from datetime import datetime
+import os
 
 st.set_page_config(layout="wide")
 st.title("📉 Line Movement Tracker")
 
-@st.cache_data
-def load_data(path="odds_history.csv"):
-    df = pd.read_csv(path)
-    # Make sure required cols exist
-    required = {"timestamp", "match", "bookmaker", "market", "team", "odds"}
-    missing = required - set(df.columns)
-    if missing:
-        raise ValueError(f"Missing columns in CSV: {missing}")
+API_KEY = "your_api_key_here"  # Add your Odds API key here
+REGION = "us"
+MARKET = "h2h"
+CSV_FILE = "odds_history.csv"
 
-    # Fix types
-    df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
-    df["odds"] = pd.to_numeric(df["odds"], errors="coerce")
+# --- Function to fetch odds ---
+def fetch_odds(sport):
+    url = f"https://api.the-odds-api.com/v4/sports/{sport}/odds"
+    params = {
+        "apiKey": API_KEY,
+        "regions": REGION,
+        "markets": MARKET,
+        "oddsFormat": "decimal",
+    }
+    response = requests.get(url, params=params)
+    data = response.json()
 
-    # Drop rows where key fields are invalid
-    df = df.dropna(subset=["timestamp", "match", "team", "bookmaker", "odds"])
-    return df
+    if not data or isinstance(data, dict) and data.get("message"):
+        st.error(f"Error fetching odds: {data.get('message', 'Unknown error')}")
+        return
 
-# Refresh button
-if st.button("🔄 Refresh CSV"):
-    load_data.clear()
+    rows = []
+    for game in data:
+        for bookmaker in game.get("bookmakers", []):
+            for market in bookmaker.get("markets", []):
+                for outcome in market.get("outcomes", []):
+                    rows.append(
+                        {
+                            "timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                            "match": f"{game['home_team']} vs {game['away_team']}",
+                            "bookmaker": bookmaker["title"],
+                            "market": market["key"],
+                            "team": outcome["name"],
+                            "odds": outcome["price"],
+                        }
+                    )
 
-try:
-    df = load_data()
-except Exception as e:
-    st.error(f"Could not load data: {e}")
-    st.stop()
+    if rows:
+        df = pd.DataFrame(rows)
+        file_exists = os.path.isfile(CSV_FILE)
+        df.to_csv(CSV_FILE, mode="a", index=False, header=not file_exists)
+        st.success(f"Fetched {len(df)} rows for {sport} at {datetime.utcnow()}")
 
-if df.empty:
-    st.warning("No valid rows found in odds_history.csv yet. Let the scheduler run a bit.")
-    st.stop()
-
-# --- Sidebar filters ---
-matches = df["match"].unique()
-selected_match = st.sidebar.selectbox("Select Match", matches)
-
-filtered = df[df["match"] == selected_match].copy()
-if filtered.empty:
-    st.warning("No rows for that match.")
-    st.stop()
-
-# --- Summary stats ---
-st.subheader(f"📊 Summary Stats for {selected_match}")
-summary = (
-    filtered.groupby("team", as_index=False)["odds"]
-    .agg(min_odds="min", max_odds="max", mean_odds="mean")
-    .round(3)
+# --- Sidebar: Sport Selection ---
+st.sidebar.header("⚙️ Settings")
+sport = st.sidebar.selectbox(
+    "Choose a sport/league:",
+    [
+        "soccer_epl",
+        "soccer_uefa_champs_league",
+        "basketball_nba",
+        "americanfootball_nfl",
+        "baseball_mlb",
+    ],
 )
-st.dataframe(summary, use_container_width=True)
 
-# --- Plots ---
-teams = filtered["team"].unique()
-for team in teams:
-    team_df = filtered[filtered["team"] == team]
-    if team_df.empty:
-        continue
+if st.sidebar.button("Fetch Odds Now"):
+    fetch_odds(sport)
 
-    fig, ax = plt.subplots()
-    for book in team_df["bookmaker"].unique():
-        sub = team_df[team_df["bookmaker"] == book].sort_values("timestamp")
-        ax.plot(sub["timestamp"], sub["odds"], label=book)
+# --- Load and Display Data ---
+if os.path.exists(CSV_FILE):
+    df = pd.read_csv(CSV_FILE)
+    df["odds"] = pd.to_numeric(df["odds"], errors="coerce")
+    df = df.dropna(subset=["odds"])
 
-    ax.set_title(f"{team} Odds Over Time")
-    ax.set_xlabel("Time")
-    ax.set_ylabel("Decimal Odds")
-    ax.legend()
-    ax.grid(True, alpha=0.2)
-    st.pyplot(fig)
+    matches = df["match"].unique()
+    selected_match = st.sidebar.selectbox("Select Match", matches)
+    filtered = df[df["match"] == selected_match]
+
+    st.subheader(f"📊 Summary Stats for {selected_match}")
+    summary = filtered.groupby("team")["odds"].agg(["min", "max", "mean"]).round(3)
+    st.dataframe(summary)
+
+    # Plot odds
+    teams = filtered["team"].unique()
+    for team in teams:
+        team_df = filtered[filtered["team"] == team]
+        fig, ax = plt.subplots()
+        for book in team_df["bookmaker"].unique():
+            sub = team_df[team_df["bookmaker"] == book]
+            ax.plot(pd.to_datetime(sub["timestamp"]), sub["odds"], label=book)
+        ax.set_title(f"{team} Odds Over Time")
+        ax.set_xlabel("Time")
+        ax.set_ylabel("Decimal Odds")
+        ax.legend()
+        st.pyplot(fig)
+else:
+    st.info("No data yet. Use the sidebar to fetch odds.")
